@@ -16,10 +16,12 @@ ITEM_COLS = ["id", "donor_id", "image_url", "note", "zip", "category", "item", "
 REQUEST_COLS = ["id", "requester_id", "raw_text", "zip", "needs", "inferred_context",
                 "must_have", "nice_to_have", "size", "search_text", "status", "created_at"]
 LISTING_COLS = ["id", "item_id", "platform", "external_id", "price", "listed_at",
-                "expires_at", "url", "nostr_url", "status", "dry_run", "relays_accepted"]
+                "expires_at", "url", "nostr_url", "status", "dry_run", "relays_accepted",
+                "title", "description"]
 _ITEM_SELECT = ", ".join(ITEM_COLS)
 
 _pool: ConnectionPool | None = None
+_listing_cols: list[str] | None = None
 
 
 def _db() -> ConnectionPool:
@@ -215,20 +217,32 @@ def insert_matches(rows: list[dict]) -> None:
 
 
 # ---- listings (marketplace) ------------------------------------------------
+def _listing_columns() -> list[str]:
+    """LISTING_COLS this database has. title/description came later; a DB that
+    hasn't re-run init_db.py keeps working without them (they read back null)."""
+    global _listing_cols
+    if _listing_cols is None:
+        have = {r["column_name"] for r in _all(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = 'listings'")}
+        _listing_cols = [c for c in LISTING_COLS if c in have]
+    return _listing_cols
+
+
 def insert_listing(row: dict) -> dict:
-    _insert("listings", LISTING_COLS, row)
+    _insert("listings", _listing_columns(), row)
     return row
 
 
 def list_listings(status: str | None = None) -> list[dict]:
-    cols = ", ".join(LISTING_COLS)
+    cols = ", ".join(_listing_columns())
     if status is None:
         return _all(f"SELECT {cols} FROM listings ORDER BY listed_at, id")
     return _all(f"SELECT {cols} FROM listings WHERE status = %s ORDER BY listed_at, id", (status,))
 
 
 def update_listing(listing_id: str, **fields) -> None:
-    bad = set(fields) - set(LISTING_COLS)
+    bad = set(fields) - set(_listing_columns())
     if bad:
         raise ValueError(f"Unknown listing fields: {bad}")
     sets = ", ".join(f"{k} = %s" for k in fields)

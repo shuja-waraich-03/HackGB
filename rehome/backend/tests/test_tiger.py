@@ -44,9 +44,9 @@ def pg():
                           kwargs={"autocommit": True, "row_factory": dict_row,
                                   "options": f"-c search_path={SCHEMA},public"})
     old = db_pg._pool
-    db_pg._pool = pool
+    db_pg._pool, db_pg._listing_cols = pool, None
     yield db_pg
-    db_pg._pool = old
+    db_pg._pool, db_pg._listing_cols = old, None
     pool.close()
     with psycopg.connect(URL, autocommit=True) as conn:
         conn.execute(f"DROP MATERIALIZED VIEW IF EXISTS {SCHEMA}.impact_hourly CASCADE")
@@ -149,9 +149,11 @@ def test_listings(pg):
     pg.insert_listing({"id": lst_id, "item_id": item_id, "platform": "nostr",
                        "external_id": "ab", "price": 24.99, "listed_at": now,
                        "expires_at": now, "url": "https://x", "status": "active",
-                       "dry_run": True, "relays_accepted": []})
+                       "dry_run": True, "relays_accepted": [],
+                       "title": "Black Puffer, Size M", "description": "Warm."})
     active = {r["id"]: r for r in pg.list_listings("active")}
     assert active[lst_id]["price"] == 24.99
+    assert active[lst_id]["title"] == "Black Puffer, Size M"
     pg.update_listing(lst_id, status="expired")
     assert lst_id in [r["id"] for r in pg.list_listings("expired")]
     with pytest.raises(ValueError):

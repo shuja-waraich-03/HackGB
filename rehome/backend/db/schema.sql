@@ -85,11 +85,15 @@ CREATE TABLE IF NOT EXISTS listings (
   nostr_url TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'expired')),
   dry_run BOOLEAN NOT NULL,
-  relays_accepted TEXT[] NOT NULL DEFAULT '{}'
+  relays_accepted TEXT[] NOT NULL DEFAULT '{}',
+  title TEXT,          -- as posted: the pricing agent's listing_draft
+  description TEXT
 );
 
--- Databases created before nostr_url existed.
+-- Databases created before these columns existed.
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS nostr_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS description TEXT;
 
 -- Activity feed + impact stats. Hypertable on `time`; the feed polls by `id`.
 CREATE TABLE IF NOT EXISTS events (

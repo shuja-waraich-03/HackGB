@@ -114,6 +114,8 @@ Database: **Tiger Data** (managed Postgres + TimescaleDB). pgvector does matchin
 | status | string | orchestrator | `active` · `expired` |
 | dry_run | bool | orchestrator | `true` = signed locally, never sent to relays |
 | relays_accepted | string[] | orchestrator | relays that stored the event (`[]` in dry run) |
+| title | string? | orchestrator | title as posted (the pricing agent's `listing_draft`, or the template) |
+| description | string? | orchestrator | description as posted |
 
 The Nostr event never contains `donor_id`, `note`, or other personal data: only catalog fields, price, and `location` (`LISTING_LOCATION`, else the item's zip).
 
